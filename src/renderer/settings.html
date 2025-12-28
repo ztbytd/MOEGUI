@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MoeGui 设置</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg, #ffeef8 0%, #fff5f7 100%);
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .settings-container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      padding: 30px;
+      box-shadow: 0 8px 32px rgba(255, 154, 158, 0.2);
+    }
+
+    h1 {
+      color: #ff6b8a;
+      margin-bottom: 24px;
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .settings-section {
+      margin-bottom: 24px;
+    }
+
+    .setting-item {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      color: #333;
+      font-weight: 500;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    .hint {
+      font-size: 12px;
+      color: #999;
+      margin-top: 4px;
+    }
+
+    input[type="text"],
+    input[type="password"],
+    select {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #f0f0f0;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: all 0.3s;
+      font-family: 'Segoe UI', Arial, sans-serif;
+    }
+
+    input[type="text"]:focus,
+    input[type="password"]:focus,
+    select:focus {
+      outline: none;
+      border-color: #ff9a9e;
+      background: #fef9fa;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 12px;
+      margin-top: 30px;
+    }
+
+    button {
+      flex: 1;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-family: 'Segoe UI', Arial, sans-serif;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(255, 154, 158, 0.4);
+    }
+
+    .btn-secondary {
+      background: #f5f5f5;
+      color: #666;
+    }
+
+    .btn-secondary:hover {
+      background: #e8e8e8;
+    }
+
+    .status-message {
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: none;
+    }
+
+    .status-message.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .status-message.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .model-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .model-option {
+      padding: 12px;
+      border: 2px solid #f0f0f0;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-align: center;
+      font-size: 13px;
+    }
+
+    .model-option:hover {
+      border-color: #ff9a9e;
+      background: #fef9fa;
+    }
+
+    .model-option.selected {
+      border-color: #ff9a9e;
+      background: linear-gradient(135deg, #fff 0%, #fef9fa 100%);
+      font-weight: 500;
+    }
+
+    .model-icon {
+      font-size: 20px;
+      margin-bottom: 4px;
+    }
+
+    .section-title {
+      font-size: 16px;
+      color: #666;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #f0f0f0;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .checkbox-label input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+      accent-color: #ff9a9e;
+    }
+
+    .checkbox-label span {
+      font-weight: 500;
+      color: #333;
+    }
+
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .slider-container input[type="range"] {
+      flex: 1;
+      height: 6px;
+      border-radius: 3px;
+      background: #f0f0f0;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    .slider-container input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(255, 154, 158, 0.3);
+    }
+
+    .slider-container input[type="range"]::-webkit-slider-thumb:hover {
+      box-shadow: 0 2px 8px rgba(255, 154, 158, 0.5);
+    }
+
+    .slider-container span {
+      min-width: 50px;
+      font-weight: 500;
+      color: #ff6b8a;
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+  <div class="settings-container">
+    <h1>
+      <span>⚙️</span>
+      MoeGui 设置
+    </h1>
+
+    <div id="statusMessage" class="status-message"></div>
+
+    <div class="settings-section">
+      <h2 class="section-title">AI 设置</h2>
+
+      <div class="setting-item">
+        <label>AI 模型</label>
+        <div class="model-grid">
+          <div class="model-option" data-model="gemini-3-flash-preview">
+            <div class="model-icon">⚡</div>
+            <div>Gemini 3.0 Flash</div>
+          </div>
+          <div class="model-option" data-model="gemini-2.5-flash">
+            <div class="model-icon">✨</div>
+            <div>Gemini 2.5 Flash</div>
+          </div>
+          <div class="model-option" data-model="gpt-4-turbo">
+            <div class="model-icon">🤖</div>
+            <div>GPT-4 Turbo</div>
+          </div>
+          <div class="model-option" data-model="claude-3-sonnet">
+            <div class="model-icon">📝</div>
+            <div>Claude 3 Sonnet</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <label for="apiBaseUrl">API 端点</label>
+        <input
+          type="text"
+          id="apiBaseUrl"
+          placeholder="https://action.h7ml.cn"
+        />
+        <div class="hint">兼容 OpenAI 格式的 API 端点</div>
+      </div>
+
+      <div class="setting-item">
+        <label for="apiKey">API Key</label>
+        <input
+          type="password"
+          id="apiKey"
+          placeholder="输入您的 API Key"
+        />
+        <div class="hint">用于调用 AI 服务的密钥</div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <h2 class="section-title">应用设置</h2>
+
+      <div class="setting-item">
+        <label class="checkbox-label">
+          <input type="checkbox" id="autoStart" />
+          <span>开机自动启动</span>
+        </label>
+        <div class="hint">Windows 启动时自动运行 MoeGui</div>
+      </div>
+
+      <div class="setting-item">
+        <label class="checkbox-label">
+          <input type="checkbox" id="enableFileWatcher" />
+          <span>启用桌面文件监控</span>
+        </label>
+        <div class="hint">实时监控桌面文件变化</div>
+      </div>
+
+      <div class="setting-item">
+        <label for="spriteScale">精灵大小</label>
+        <div class="slider-container">
+          <input type="range" id="spriteScale" min="50" max="150" value="100" />
+          <span id="spriteScaleValue">100%</span>
+        </div>
+        <div class="hint">调整桌面精灵的显示大小</div>
+      </div>
+    </div>
+
+    <div class="button-group">
+      <button class="btn-secondary" id="cancelBtn">取消</button>
+      <button class="btn-primary" id="saveBtn">保存设置</button>
+    </div>
+  </div>
+
+  <script src="settings.js"></script>
+</body>
+</html>

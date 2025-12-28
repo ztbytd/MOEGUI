@@ -1,0 +1,72 @@
+{
+  "name": "moe-gui",
+  "version": "1.0.0",
+  "description": "桌面精灵助手 - Live2D + AI 智能文件整理",
+  "main": "src/main/index.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron .",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux"
+  },
+  "keywords": [
+    "electron",
+    "live2d",
+    "desktop-pet",
+    "ai"
+  ],
+  "author": "MoeGui Team",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
+  },
+  "dependencies": {
+    "chokidar": "^3.6.0",
+    "electron-fetch": "^1.9.1",
+    "pixi-live2d-display": "^0.4.0",
+    "pixi.js": "^6.5.10"
+  },
+  "build": {
+    "appId": "com.moegui.desktop",
+    "productName": "MoeGui",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "resources/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "resources/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "MoeGui"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "resources/icon.icns",
+      "category": "public.app-category.utilities"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "icon": "resources/icon.png",
+      "category": "Utility"
+    }
+  }
+}

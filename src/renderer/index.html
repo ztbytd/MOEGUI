@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://cdn.jsdelivr.net https://cubism.live2d.com;">
+  <title>MoeGui</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Live2D 画布 -->
+    <canvas id="live2d-canvas"></canvas>
+
+    <!-- 加载提示 -->
+    <div id="loading" class="loading">
+      <div class="loading-text">加载中...</div>
+    </div>
+  </div>
+
+  <!-- 引入 Live2D Cubism 2 Runtime (必须在 pixi-live2d-display 之前) -->
+  <script src="https://cdn.jsdelivr.net/gh/dylanNew/live2d/webgl/Live2D/lib/live2d.min.js"></script>
+
+  <!-- 引入 PixiJS 库 -->
+  <script src="../../node_modules/pixi.js/dist/browser/pixi.min.js"></script>
+
+  <!-- 引入 pixi-live2d-display 库 (Cubism 2 专用版本) -->
+  <script src="../../node_modules/pixi-live2d-display/dist/cubism2.min.js"></script>
+
+  <!-- 引入自定义脚本 -->
+  <script src="live2d-loader.js"></script>
+  <script src="interaction.js"></script>
+  <script src="file-drop.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
