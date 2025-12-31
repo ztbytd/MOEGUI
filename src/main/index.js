@@ -57,17 +57,10 @@ function createWindow() {
   // 加载渲染页面
   mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
 
-  // 设置窗口位置
-  const config = loadConfig();
-  if (config.windowPosition) {
-    // 恢复上次保存的位置
-    mainWindow.setPosition(config.windowPosition.x, config.windowPosition.y);
-  } else {
-    // 默认位置：右下角
-    const { screen } = require('electron');
-    const { width, height } = screen.getPrimaryDisplay().workAreaSize;
-    mainWindow.setPosition(width - 350, height - 450);
-  }
+  // 设置窗口位置（每次启动都使用默认位置：右下角）
+  const { screen } = require('electron');
+  const { width, height } = screen.getPrimaryDisplay().workAreaSize;
+  mainWindow.setPosition(width - 350, height - 450);
 
   // 开发模式下打开开发者工具
   // mainWindow.webContents.openDevTools({ mode: 'detach' });
@@ -117,12 +110,13 @@ function createChatWindow() {
   }
 
   chatWindow = new BrowserWindow({
-    width: 450,
-    height: 650,
+    width: 750,  // 增加宽度
+    height: 700,  // 稍微增加高度
     show: false,
     resizable: true,
     minimizable: true,
     maximizable: true,
+    autoHideMenuBar: true,  // 隐藏菜单栏
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -132,12 +126,8 @@ function createChatWindow() {
 
   chatWindow.loadFile(path.join(__dirname, '../renderer/chat.html'));
 
-  // 设置窗口位置（主窗口右侧）
-  if (mainWindow) {
-    const mainPos = mainWindow.getPosition();
-    const mainSize = mainWindow.getSize();
-    chatWindow.setPosition(mainPos[0] + mainSize[0] + 20, mainPos[1]);
-  }
+  // 设置窗口位置（屏幕居中）
+  chatWindow.center();
 
   chatWindow.once('ready-to-show', () => {
     chatWindow.show();
@@ -232,8 +222,13 @@ app.whenReady().then(() => {
   createWindow();
   createTray();
 
-  // 初始化 AI 服务
+  // 每次启动清空对话历史，让每次都是全新开始
   const config = loadConfig();
+  config.chatHistory = [];
+  config.windowPosition = null; // 也清除保存的窗口位置
+  saveConfig(config);
+
+  // 初始化 AI 服务
   aiService = new AIService({
     apiBaseUrl: config.apiBaseUrl || 'https://action.h7ml.cn',
     apiKey: config.apiKey || '',

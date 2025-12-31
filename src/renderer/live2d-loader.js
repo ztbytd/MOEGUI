@@ -101,7 +101,7 @@ class Live2DLoader {
         const scale = Math.min(
           this.app.screen.width / this.model.width,
           this.app.screen.height / this.model.height
-        ) * 0.8;
+        ) * 0.9;  // 调整缩放系数：0.9 = 90% 窗口大小（让模型更大）
         this.model.scale.set(scale);
 
         // 添加到舞台
@@ -125,17 +125,30 @@ class Live2DLoader {
   /**
    * 播放随机动作
    */
-  playRandomMotion() {
+  playRandomMotion(excludeIdle = false) {
     if (this.isDestroyed) return;
 
     try {
       if (this.model && this.model.internalModel && this.model.internalModel.motionManager) {
         const group = this.model.internalModel.motionManager.definitions;
         if (group && Object.keys(group).length > 0) {
-          // 获取第一个动作组
-          const groupName = Object.keys(group)[0];
-          this.model.motion(groupName);
-          console.log('播放动作:', groupName);
+          // 获取所有动作组
+          let groupNames = Object.keys(group);
+
+          // 排除 idle/Idle 动作（如果指定）
+          if (excludeIdle) {
+            groupNames = groupNames.filter(name =>
+              name.toLowerCase() !== 'idle'
+            );
+          }
+
+          if (groupNames.length > 0) {
+            // 随机选择一个动作组
+            const randomIndex = Math.floor(Math.random() * groupNames.length);
+            const groupName = groupNames[randomIndex];
+            this.model.motion(groupName);
+            console.log('播放动作:', groupName);
+          }
         }
       }
     } catch (error) {
@@ -167,18 +180,20 @@ class Live2DLoader {
         const targetY = (y - 0.5) * 2;
 
         if (this.model.internalModel && this.model.internalModel.coreModel) {
-          this.model.internalModel.coreModel.addParameterValueById(
-            'ParamAngleX',
-            targetX * 30
-          );
-          this.model.internalModel.coreModel.addParameterValueById(
-            'ParamAngleY',
-            -targetY * 30
-          );
-          this.model.internalModel.coreModel.addParameterValueById(
-            'ParamBodyAngleX',
-            targetX * 10
-          );
+          const core = this.model.internalModel.coreModel;
+
+          // Cubism 2 模型 (使用 setParamFloat 方法)
+          if (typeof core.setParamFloat === 'function') {
+            core.setParamFloat('PARAM_ANGLE_X', targetX * 30);
+            core.setParamFloat('PARAM_ANGLE_Y', -targetY * 30);
+            core.setParamFloat('PARAM_BODY_ANGLE_X', targetX * 10);
+          }
+          // Cubism 3/4 模型 (使用 setParameterValueById 方法)
+          else if (typeof core.setParameterValueById === 'function') {
+            core.setParameterValueById('ParamAngleX', targetX * 30);
+            core.setParameterValueById('ParamAngleY', -targetY * 30);
+            core.setParameterValueById('ParamBodyAngleX', targetX * 10);
+          }
         }
       } catch (error) {
         console.error('鼠标追踪更新失败:', error);
@@ -212,8 +227,8 @@ class Live2DLoader {
 
       try {
         if (this.model.internalModel && this.model.internalModel.motionManager) {
-          // 尝试播放 idle 动作组
-          const hasIdleMotion = this.model.motion('idle');
+          // 尝试播放 idle 或 Idle 动作组（兼容 Cubism 2/3/4）
+          const hasIdleMotion = this.model.motion('idle') || this.model.motion('Idle');
           if (!hasIdleMotion) {
             // 如果没有 idle 组，播放随机动作
             this.playRandomMotion();
@@ -236,9 +251,49 @@ class Live2DLoader {
     this.model.on('hit', (hitAreas) => {
       console.log('点击了模型区域:', hitAreas);
 
-      // 播放随机表情
-      if (this.model.internalModel.motionManager) {
-        this.playRandomMotion();
+      if (!this.model.internalModel || !this.model.internalModel.motionManager) {
+        return;
+      }
+
+      try {
+        // 根据点击区域播放对应的动作
+        let motionPlayed = false;
+
+        // 尝试播放点击相关的动作（兼容 Cubism 2/3/4）
+        // Cubism 2: flick_head, tap_body
+        // Cubism 3/4: Tap, Flick, Tap@Body 等
+
+        if (hitAreas.includes('head') || hitAreas.includes('Head')) {
+          // 尝试多种可能的动作名称
+          motionPlayed = this.model.motion('flick_head') ||
+                        this.model.motion('Flick') ||
+                        this.model.motion('FlickHead') ||
+                        this.model.motion('Tap');
+          if (motionPlayed) {
+            console.log('播放头部点击动作');
+          }
+        }
+        else if (hitAreas.includes('body') || hitAreas.includes('Body')) {
+          motionPlayed = this.model.motion('tap_body') ||
+                        this.model.motion('Tap@Body') ||
+                        this.model.motion('TapBody') ||
+                        this.model.motion('Tap');
+          if (motionPlayed) {
+            console.log('播放身体点击动作');
+          }
+        }
+        else {
+          // 其他区域，尝试播放通用点击动作
+          motionPlayed = this.model.motion('Tap') || this.model.motion('tap_body');
+        }
+
+        // 如果没有对应的动作，播放随机动作（排除 Idle）
+        if (!motionPlayed) {
+          console.log('该区域无特定动作，播放随机动作');
+          this.playRandomMotion(true); // 排除 idle
+        }
+      } catch (error) {
+        console.error('播放点击动作失败:', error);
       }
     });
 

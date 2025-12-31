@@ -15,7 +15,6 @@ window.addEventListener('DOMContentLoaded', () => {
 function initChat() {
   const messageInput = document.getElementById('messageInput');
   const sendBtn = document.getElementById('sendBtn');
-  const closeBtn = document.getElementById('closeBtn');
 
   // 发送按钮
   sendBtn.addEventListener('click', handleSend);
@@ -34,34 +33,30 @@ function initChat() {
     messageInput.style.height = Math.min(messageInput.scrollHeight, 120) + 'px';
   });
 
-  // 关闭按钮
-  closeBtn.addEventListener('click', closeChat);
-
-  // 快捷指令按钮
-  const actionBtns = document.querySelectorAll('.action-btn');
+  // 快捷指令按钮（只处理有 data-action 属性的按钮）
+  const actionBtns = document.querySelectorAll('.action-btn[data-action]');
   actionBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       const action = btn.dataset.action;
       handleQuickAction(action);
     });
   });
+
+  // 清除对话历史按钮
+  const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+  if (clearHistoryBtn) {
+    clearHistoryBtn.addEventListener('click', clearChatHistory);
+  }
 }
 
 /**
- * 加载对话历史
+ * 加载对话历史（每次启动不加载历史，保持空白）
  */
 async function loadChatHistory() {
-  try {
-    if (window.electronAPI && window.electronAPI.getChatHistory) {
-      const history = await window.electronAPI.getChatHistory();
-      if (history && history.length > 0) {
-        messages = history;
-        renderMessages();
-      }
-    }
-  } catch (error) {
-    console.error('加载对话历史失败:', error);
-  }
+  // 每次启动都是全新开始，不加载历史记录
+  // 这样可以让每次打开都像精灵全新出场
+  messages = [];
+  renderMessages();
 }
 
 /**
@@ -434,5 +429,38 @@ async function saveChatHistory() {
 function closeChat() {
   if (window.electronAPI && window.electronAPI.closeChat) {
     window.electronAPI.closeChat();
+  }
+}
+
+/**
+ * 清除对话历史
+ */
+async function clearChatHistory() {
+  // 确认提示
+  const confirmed = confirm('确定要清除所有对话记录吗？\n此操作无法撤销。');
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    // 清空消息数组
+    messages = [];
+
+    // 重新渲染界面（显示空状态）
+    renderMessages();
+
+    // 保存到配置文件
+    await saveChatHistory();
+
+    // 显示成功提示
+    setTimeout(() => {
+      addMessage('system', '✨ 对话记录已清除，开启新的对话吧！');
+    }, 300);
+
+    console.log('对话历史已清除');
+  } catch (error) {
+    console.error('清除对话历史失败:', error);
+    alert('清除失败：' + error.message);
   }
 }

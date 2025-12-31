@@ -161,29 +161,50 @@ class InteractionManager {
 
   /**
    * 检查点击位置是否在精灵上
-   * 通过读取 canvas 像素的透明度判断
+   * 使用模型的边界框进行碰撞检测
    */
   checkSpriteHit(x, y) {
+    // 如果没有模型，允许拖拽整个窗口
+    if (!this.model) {
+      return true;
+    }
+
     try {
-      const ctx = this.canvas.getContext('2d', { willReadFrequently: true });
-      if (!ctx) return false;
+      // 获取 canvas 的边界矩形
+      const rect = this.canvas.getBoundingClientRect();
 
-      // 考虑设备像素比
-      const dpr = window.devicePixelRatio || 1;
-      const pixelX = Math.floor(x * dpr);
-      const pixelY = Math.floor(y * dpr);
+      // 将 canvas 坐标转换为世界坐标
+      const canvasX = x;
+      const canvasY = y;
 
-      // 读取像素数据
-      const pixel = ctx.getImageData(pixelX, pixelY, 1, 1).data;
+      // 使用模型的边界框进行简单检测
+      if (this.model.getBounds) {
+        const bounds = this.model.getBounds();
 
-      // 检查透明度（alpha 通道）
-      const alpha = pixel[3];
+        // 检查点是否在边界框内
+        const isInBounds = canvasX >= bounds.x &&
+                          canvasX <= bounds.x + bounds.width &&
+                          canvasY >= bounds.y &&
+                          canvasY <= bounds.y + bounds.height;
 
-      // alpha > 10 表示不透明区域
-      return alpha > 10;
+        return isInBounds;
+      }
+
+      // 如果无法获取边界框，使用简单的中心距离检测
+      const centerX = this.canvas.width / 2;
+      const centerY = this.canvas.height / 2;
+      const distance = Math.sqrt(
+        Math.pow(canvasX - centerX, 2) +
+        Math.pow(canvasY - centerY, 2)
+      );
+
+      // 假设精灵在中心，半径为窗口较小边的 40%
+      const radius = Math.min(this.canvas.width, this.canvas.height) * 0.4;
+
+      return distance < radius;
     } catch (error) {
-      // Canvas 可能被 WebGL 占用，无法读取像素
-      // 这种情况下假定在精灵上
+      console.error('碰撞检测失败:', error);
+      // 出错时允许拖拽
       return true;
     }
   }
@@ -212,6 +233,11 @@ class InteractionManager {
       if (now - lastCheck < throttleMs) return;
       lastCheck = now;
 
+      // 正在拖拽时不改变穿透状态
+      if (this.isDragging) {
+        return;
+      }
+
       const rect = this.canvas.getBoundingClientRect();
       const x = this.lastMousePos.x - rect.left;
       const y = this.lastMousePos.y - rect.top;
@@ -219,8 +245,11 @@ class InteractionManager {
       // 检查是否在 canvas 范围内
       if (x < 0 || y < 0 || x > rect.width || y > rect.height) {
         // 鼠标在窗口外，允许穿透
-        this.setMouseThrough(true);
-        this.isOverSprite = false;
+        if (this.isOverSprite) {
+          this.setMouseThrough(true);
+          this.isOverSprite = false;
+          document.body.style.cursor = 'default';
+        }
         return;
       }
 
@@ -233,6 +262,8 @@ class InteractionManager {
 
         // 改变鼠标样式
         document.body.style.cursor = isOnSprite ? 'grab' : 'default';
+
+        console.log('鼠标', isOnSprite ? '在精灵上' : '不在精灵上');
       }
     };
 

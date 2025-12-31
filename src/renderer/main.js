@@ -18,11 +18,6 @@ async function initLive2D() {
     }
     console.log('✓ PixiJS 已加载，版本:', window.PIXI.VERSION);
 
-    if (!window.Live2D) {
-      throw new Error('Live2D Cubism 2 Runtime 未加载');
-    }
-    console.log('✓ Live2D Runtime 已加载');
-
     if (!window.PIXI.live2d) {
       throw new Error('pixi-live2d-display 未加载或未正确初始化');
     }
@@ -31,7 +26,7 @@ async function initLive2D() {
     if (!window.PIXI.live2d.Live2DModel) {
       throw new Error('Live2DModel 类未找到');
     }
-    console.log('✓ Live2DModel 类已就绪');
+    console.log('✓ Live2DModel 类已就绪 (支持 Cubism 2/3/4)');
 
     // 创建加载器实例
     console.log('1. 创建 Live2D 加载器...');
@@ -44,7 +39,7 @@ async function initLive2D() {
 
     // 加载 Live2D 模型
     console.log('3. 加载 Live2D 模型...');
-    const modelUrl = 'https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display/test/assets/shizuku/shizuku.model.json';
+    const modelUrl = '../../resources/models/miara_pro_en/runtime/miara_pro_t03.model3.json';
 
     await loader.loadModel(modelUrl);
     console.log('✓ Live2D 模型加载完成');
@@ -154,7 +149,6 @@ window.addEventListener('DOMContentLoaded', async () => {
   console.log('可用的全局对象:', {
     PIXI: !!window.PIXI,
     'PIXI.live2d': !!(window.PIXI && window.PIXI.live2d),
-    Live2D: !!window.Live2D,
     Live2DLoader: !!window.Live2DLoader,
     InteractionManager: !!window.InteractionManager,
     FileDropManager: !!window.FileDropManager

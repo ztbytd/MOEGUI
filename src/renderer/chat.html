@@ -57,23 +57,6 @@
       margin-top: 2px;
     }
 
-    .close-btn {
-      background: rgba(255, 255, 255, 0.2);
-      border: none;
-      color: white;
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.3s;
-    }
-
-    .close-btn:hover {
-      background: rgba(255, 255, 255, 0.3);
-    }
 
     .quick-actions {
       padding: 12px 16px;
@@ -308,10 +291,8 @@
       <div class="avatar">🎀</div>
       <div class="header-title">
         <h1>MoeGui 助手</h1>
-        <p>拖拽文件或输入指令</p>
       </div>
     </div>
-    <button class="close-btn" id="closeBtn">✕</button>
   </div>
 
   <div class="quick-actions">
@@ -319,6 +300,7 @@
     <button class="action-btn" data-action="查看最近文件">🕒 最近文件</button>
     <button class="action-btn" data-action="清理重复文件">🗑️ 清理重复</button>
     <button class="action-btn" data-action="按日期归档">📅 按日期归档</button>
+    <button class="action-btn" id="clearHistoryBtn">🗑️ 清除对话</button>
     <button class="action-btn" data-action="帮助">❓ 帮助</button>
   </div>
 

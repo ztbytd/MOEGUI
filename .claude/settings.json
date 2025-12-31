@@ -1,7 +1,7 @@
 {
   "env": {
-    "ANTHROPIC_AUTH_TOKEN": "88_64c27d1e6f7e67027bc23667b4b86c3da0c26ca5160e4df9b85105a7e6d6f8e3",
-    "ANTHROPIC_BASE_URL": "https://www.88code.ai/api",
+    "ANTHROPIC_AUTH_TOKEN": "sk-user-7c50cd8830ddcaf05fb63447fdc255e556d82a269fceb511f1213b9c28b4421b",
+    "ANTHROPIC_BASE_URL": "https://api.cubence.com",
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC":1
   }
 }
