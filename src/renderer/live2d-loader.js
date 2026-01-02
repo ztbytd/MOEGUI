@@ -1,5 +1,6 @@
 // Live2D 加载器模块
 // 使用全局 PIXI 对象（从 script 标签引入）
+// 支持 Cubism 3/4 模型
 
 // 启用 Live2D 日志（调试用）
 if (window.PIXI && window.PIXI.live2d) {
@@ -14,6 +15,11 @@ class Live2DLoader {
     this.mouseTrackingHandler = null;
     this.idleMotionInterval = null;
     this.isDestroyed = false;
+
+    // 动作序列配置
+    this.motionSequence = null;
+    this.currentMotionIndex = 0;
+    this.sequenceTimeout = null;
   }
 
   /**
@@ -135,11 +141,9 @@ class Live2DLoader {
           // 获取所有动作组
           let groupNames = Object.keys(group);
 
-          // 排除 idle/Idle 动作（如果指定）
+          // 排除 Idle 动作（如果指定）
           if (excludeIdle) {
-            groupNames = groupNames.filter(name =>
-              name.toLowerCase() !== 'idle'
-            );
+            groupNames = groupNames.filter(name => name !== 'Idle');
           }
 
           if (groupNames.length > 0) {
@@ -154,6 +158,22 @@ class Live2DLoader {
     } catch (error) {
       console.error('播放动作失败:', error);
     }
+  }
+
+  /**
+   * 设置动作序列配置
+   * @param {Array} sequence - 动作序列配置数组
+   * 格式: [{ motion: "Idle", duration: 5000 }, ...]
+   */
+  setMotionSequence(sequence) {
+    if (!sequence || !Array.isArray(sequence) || sequence.length === 0) {
+      console.warn('动作序列配置无效');
+      return;
+    }
+
+    this.motionSequence = sequence;
+    this.currentMotionIndex = 0;
+    console.log('动作序列已设置:', sequence);
   }
 
   /**
@@ -182,14 +202,8 @@ class Live2DLoader {
         if (this.model.internalModel && this.model.internalModel.coreModel) {
           const core = this.model.internalModel.coreModel;
 
-          // Cubism 2 模型 (使用 setParamFloat 方法)
-          if (typeof core.setParamFloat === 'function') {
-            core.setParamFloat('PARAM_ANGLE_X', targetX * 30);
-            core.setParamFloat('PARAM_ANGLE_Y', -targetY * 30);
-            core.setParamFloat('PARAM_BODY_ANGLE_X', targetX * 10);
-          }
-          // Cubism 3/4 模型 (使用 setParameterValueById 方法)
-          else if (typeof core.setParameterValueById === 'function') {
+          // Cubism 3/4 参数设置
+          if (typeof core.setParameterValueById === 'function') {
             core.setParameterValueById('ParamAngleX', targetX * 30);
             core.setParameterValueById('ParamAngleY', -targetY * 30);
             core.setParameterValueById('ParamBodyAngleX', targetX * 10);
@@ -205,17 +219,75 @@ class Live2DLoader {
   }
 
   /**
-   * 设置 Idle 动画循环
+   * 设置动作循环（支持随机模式和序列模式）
    */
   startIdleMotion() {
     if (this.isDestroyed || !this.model) return;
 
-    // 清除旧的定时器（如果存在）
+    // 清除旧的定时器
     if (this.idleMotionInterval) {
       clearInterval(this.idleMotionInterval);
+      this.idleMotionInterval = null;
+    }
+    if (this.sequenceTimeout) {
+      clearTimeout(this.sequenceTimeout);
+      this.sequenceTimeout = null;
     }
 
-    // 每隔一段时间播放一次 Idle 动作
+    // 如果有配置序列，使用序列模式
+    if (this.motionSequence && this.motionSequence.length > 0) {
+      console.log('启动动作序列模式');
+      this.playMotionSequence();
+    } else {
+      // 否则使用随机模式
+      console.log('启动随机动作模式');
+      this.startRandomMotion();
+    }
+  }
+
+  /**
+   * 播放动作序列（按配置顺序循环）
+   */
+  playMotionSequence() {
+    if (this.isDestroyed || !this.model || !this.motionSequence) {
+      return;
+    }
+
+    // 获取当前动作配置
+    const currentMotion = this.motionSequence[this.currentMotionIndex];
+
+    if (!currentMotion) {
+      console.error('动作配置无效:', this.currentMotionIndex);
+      return;
+    }
+
+    console.log(`播放序列动作 [${this.currentMotionIndex + 1}/${this.motionSequence.length}]:`,
+                currentMotion.motion, `持续 ${currentMotion.duration}ms`);
+
+    try {
+      // 播放动作
+      const success = this.model.motion(currentMotion.motion);
+
+      if (!success) {
+        console.warn(`动作 "${currentMotion.motion}" 播放失败，可能不存在`);
+      }
+    } catch (error) {
+      console.error('播放动作时出错:', error);
+    }
+
+    // 移动到下一个动作
+    this.currentMotionIndex = (this.currentMotionIndex + 1) % this.motionSequence.length;
+
+    // 设置下一个动作的定时器
+    this.sequenceTimeout = setTimeout(() => {
+      this.playMotionSequence();
+    }, currentMotion.duration || 3000); // 默认3秒
+  }
+
+  /**
+   * 随机动作模式（原来的逻辑）
+   */
+  startRandomMotion() {
     this.idleMotionInterval = setInterval(() => {
       if (this.isDestroyed || !this.model) {
         if (this.idleMotionInterval) {
@@ -226,24 +298,18 @@ class Live2DLoader {
       }
 
       try {
-        if (this.model.internalModel && this.model.internalModel.motionManager) {
-          // 尝试播放 idle 或 Idle 动作组（兼容 Cubism 2/3/4）
-          const hasIdleMotion = this.model.motion('idle') || this.model.motion('Idle');
-          if (!hasIdleMotion) {
-            // 如果没有 idle 组，播放随机动作
-            this.playRandomMotion();
-          }
-        }
+        // 随机播放任意动作（包括 Idle、Tap、Flic 等）
+        this.playRandomMotion(false); // false = 不排除 idle
       } catch (error) {
-        console.error('Idle 动画播放失败:', error);
+        console.error('随机动作播放失败:', error);
       }
     }, 10000); // 每 10 秒播放一次
 
-    console.log('Idle 动画循环已启动');
+    console.log('随机动作循环已启动（包含所有动作）');
   }
 
   /**
-   * 点击模型触发表情
+   * 点击模型触发动作
    */
   enableClickExpression() {
     if (!this.model) return;
@@ -256,17 +322,12 @@ class Live2DLoader {
       }
 
       try {
-        // 根据点击区域播放对应的动作
+        // Cubism 3/4 常用动作标签
         let motionPlayed = false;
 
-        // 尝试播放点击相关的动作（兼容 Cubism 2/3/4）
-        // Cubism 2: flick_head, tap_body
-        // Cubism 3/4: Tap, Flick, Tap@Body 等
-
         if (hitAreas.includes('head') || hitAreas.includes('Head')) {
-          // 尝试多种可能的动作名称
-          motionPlayed = this.model.motion('flick_head') ||
-                        this.model.motion('Flick') ||
+          // 头部点击：尝试 Flick, FlickHead, Tap
+          motionPlayed = this.model.motion('Flick') ||
                         this.model.motion('FlickHead') ||
                         this.model.motion('Tap');
           if (motionPlayed) {
@@ -274,8 +335,8 @@ class Live2DLoader {
           }
         }
         else if (hitAreas.includes('body') || hitAreas.includes('Body')) {
-          motionPlayed = this.model.motion('tap_body') ||
-                        this.model.motion('Tap@Body') ||
+          // 身体点击：尝试 Tap@Body, TapBody, Tap
+          motionPlayed = this.model.motion('Tap@Body') ||
                         this.model.motion('TapBody') ||
                         this.model.motion('Tap');
           if (motionPlayed) {
@@ -283,14 +344,14 @@ class Live2DLoader {
           }
         }
         else {
-          // 其他区域，尝试播放通用点击动作
-          motionPlayed = this.model.motion('Tap') || this.model.motion('tap_body');
+          // 其他区域：尝试通用 Tap
+          motionPlayed = this.model.motion('Tap');
         }
 
-        // 如果没有对应的动作，播放随机动作（排除 Idle）
+        // 如果没有对应动作，播放随机动作（排除 Idle）
         if (!motionPlayed) {
           console.log('该区域无特定动作，播放随机动作');
-          this.playRandomMotion(true); // 排除 idle
+          this.playRandomMotion(true); // 排除 Idle
         }
       } catch (error) {
         console.error('播放点击动作失败:', error);
@@ -298,6 +359,39 @@ class Live2DLoader {
     });
 
     console.log('点击表情已启用');
+  }
+
+  /**
+   * 调整渲染器大小并重新定位模型
+   * @param {number} width - 新宽度
+   * @param {number} height - 新高度
+   * @param {number} scaleMultiplier - 缩放倍数（默认 0.9）
+   */
+  resize(width, height, scaleMultiplier = 0.9) {
+    if (!this.app || !this.model) {
+      console.warn('无法调整大小：应用或模型未初始化');
+      return;
+    }
+
+    console.log('调整渲染器大小:', { width, height });
+
+    // 更新渲染器尺寸
+    this.app.renderer.resize(width, height);
+
+    // 重新定位模型到中央
+    this.model.position.set(width / 2, height / 2);
+
+    // 重新计算缩放
+    const scale = Math.min(
+      width / this.model.width,
+      height / this.model.height
+    ) * scaleMultiplier;
+    this.model.scale.set(scale);
+
+    console.log('模型已调整:', {
+      position: { x: this.model.position.x, y: this.model.position.y },
+      scale: scale
+    });
   }
 
   /**
@@ -317,6 +411,12 @@ class Live2DLoader {
       if (this.idleMotionInterval) {
         clearInterval(this.idleMotionInterval);
         this.idleMotionInterval = null;
+      }
+
+      // 清除序列播放定时器
+      if (this.sequenceTimeout) {
+        clearTimeout(this.sequenceTimeout);
+        this.sequenceTimeout = null;
       }
 
       // 移除鼠标追踪监听器
@@ -340,6 +440,7 @@ class Live2DLoader {
       }
 
       this.model = null;
+      this.motionSequence = null;
       console.log('Live2DLoader 已销毁');
     } catch (error) {
       console.error('销毁过程中出错:', error);

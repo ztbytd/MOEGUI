@@ -90,7 +90,34 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 保存对话历史
   saveChatHistory: (history) => {
     return ipcRenderer.invoke('save-chat-history', history);
-  }
-});
+  },
 
+  // 移动窗口到指定位置（用于入场动画）
+  moveWindowTo: (position) => {
+    return ipcRenderer.invoke('move-window-to', position);
+  },
+
+  // 获取入场动画目标位置
+  getEntranceTargetPosition: () => {
+    return ipcRenderer.invoke('get-entrance-target-position');
+  },
+
+  // 设置窗口为全屏（用于入场动画）
+  setWindowFullscreen: () => {
+    return ipcRenderer.invoke('set-window-fullscreen');
+  },
+
+  // 恢复窗口大小
+  restoreWindowSize: () => {
+    return ipcRenderer.invoke('restore-window-size');
+  },
+
+  // 监听入场动画启动事件
+  onStartEntranceAnimation: (callback) => {
+    ipcRenderer.on('start-entrance-animation', (event, data) => {
+      callback(data);
+    });
+  }
+
+});
 console.log('Preload script loaded - API exposed');

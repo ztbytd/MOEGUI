@@ -5,6 +5,7 @@ console.log('MoeGui renderer loaded');
 let loader = null;
 let interactionManager = null;
 let fileDropManager = null;
+let entranceAnimationManager = null;
 
 async function initLive2D() {
   const loadingEl = document.getElementById('loading');
@@ -26,7 +27,7 @@ async function initLive2D() {
     if (!window.PIXI.live2d.Live2DModel) {
       throw new Error('Live2DModel 类未找到');
     }
-    console.log('✓ Live2DModel 类已就绪 (支持 Cubism 2/3/4)');
+    console.log('✓ Live2DModel 类已就绪 (Cubism 3/4)');
 
     // 创建加载器实例
     console.log('1. 创建 Live2D 加载器...');
@@ -44,6 +45,24 @@ async function initLive2D() {
     await loader.loadModel(modelUrl);
     console.log('✓ Live2D 模型加载完成');
 
+    // 加载动作序列配置
+    console.log('3.5. 加载动作序列配置...');
+    try {
+      const motionConfigUrl = '../../resources/models/miara_pro_en/motion-config.json';
+      const response = await fetch(motionConfigUrl);
+      if (response.ok) {
+        const config = await response.json();
+        if (config.motionSequence && config.motionSequence.length > 0) {
+          loader.setMotionSequence(config.motionSequence);
+          console.log('✓ 动作序列配置已加载:', config.modelName);
+        }
+      } else {
+        console.log('未找到动作配置文件，将使用随机模式');
+      }
+    } catch (error) {
+      console.warn('加载动作配置失败，将使用随机模式:', error.message);
+    }
+
     // 隐藏加载提示
     if (loadingEl) {
       loadingEl.style.display = 'none';
@@ -52,7 +71,7 @@ async function initLive2D() {
     // 启用功能
     console.log('4. 启用 Live2D 功能...');
     loader.enableMouseTracking();  // 鼠标视线追踪
-    loader.startIdleMotion();      // Idle 动画循环
+    loader.startIdleMotion();      // 随机动作循环（包括所有动作）
     loader.enableClickExpression(); // 点击触发动作
     console.log('✓ Live2D 功能已启用');
 
@@ -145,17 +164,65 @@ window.addEventListener('DOMContentLoaded', async () => {
   // 等待一小段时间，确保所有库都已加载
   await new Promise(resolve => setTimeout(resolve, 100));
 
-  console.log('DOM 加载完成，准备初始化 Live2D...');
+  console.log('DOM 加载完成，准备初始化 Live2D 和入场动画...');
   console.log('可用的全局对象:', {
     PIXI: !!window.PIXI,
     'PIXI.live2d': !!(window.PIXI && window.PIXI.live2d),
     Live2DLoader: !!window.Live2DLoader,
     InteractionManager: !!window.InteractionManager,
-    FileDropManager: !!window.FileDropManager
+    FileDropManager: !!window.FileDropManager,
+    EntranceAnimationManager: !!window.EntranceAnimationManager,
+    electronAPI: !!window.electronAPI
   });
 
-  initLive2D();
+  // 先初始化 Live2D 模型
+  console.log('步骤1: 初始化 Live2D 模型...');
+  await initLive2D();
+
+  // 模型加载完成后，启动入场动画
+  if (window.electronAPI && window.electronAPI.getEntranceTargetPosition && window.EntranceAnimationManager) {
+    try {
+      console.log('步骤2: 获取入场动画目标位置...');
+      const targetPosition = await window.electronAPI.getEntranceTargetPosition();
+
+      if (targetPosition) {
+        console.log('步骤3: 启动入场动画，目标位置:', targetPosition);
+        await startEntranceAnimation(targetPosition);
+      } else {
+        console.warn('未获取到目标位置，跳过入场动画');
+      }
+    } catch (error) {
+      console.error('入场动画失败:', error);
+    }
+  } else {
+    console.warn('入场动画不可用');
+  }
 });
+
+// 启动入场动画
+async function startEntranceAnimation(targetPosition) {
+  try {
+    console.log('开始入场动画（模型已加载）...');
+
+    // 创建入场动画管理器
+    if (window.EntranceAnimationManager) {
+      const appElement = document.getElementById('app');
+      entranceAnimationManager = new window.EntranceAnimationManager();
+
+      // 初始化并启动动画，传入 loader 以便访问模型
+      entranceAnimationManager.init(appElement, () => {
+        console.log('✅ 入场动画完成！精灵已就位于右下角');
+      }, loader);  // 传入 loader 实例
+
+      // 开始动画
+      await entranceAnimationManager.start(targetPosition);
+    } else {
+      console.warn('EntranceAnimationManager 不可用');
+    }
+  } catch (error) {
+    console.error('入场动画失败:', error);
+  }
+}
 
 // 应用初始缩放
 async function applyInitialScale() {
@@ -206,5 +273,8 @@ window.addEventListener('beforeunload', () => {
   }
   if (fileDropManager) {
     fileDropManager.destroy();
+  }
+  if (entranceAnimationManager) {
+    entranceAnimationManager.destroy();
   }
 });

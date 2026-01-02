@@ -10,6 +10,7 @@ let fileWatcher = null;
 let settingsWindow = null;
 let chatWindow = null;
 let aiService = null;
+let entranceTargetPosition = null; // 入场动画目标位置
 
 // 配置文件路径
 const configPath = path.join(app.getPath('userData'), 'config.json');
@@ -57,10 +58,20 @@ function createWindow() {
   // 加载渲染页面
   mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
 
-  // 设置窗口位置（每次启动都使用默认位置：右下角）
+  // 设置窗口初始位置（屏幕中央，用于入场动画）
   const { screen } = require('electron');
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
-  mainWindow.setPosition(width - 350, height - 450);
+  const centerX = Math.floor((width - 300) / 2);
+  const centerY = Math.floor((height - 400) / 2);
+  mainWindow.setPosition(centerX, centerY);
+
+  // 计算目标位置（右下角）并保存为全局变量
+  const targetX = width - 350;
+  const targetY = height - 450;
+  entranceTargetPosition = { x: targetX, y: targetY };
+
+  console.log('窗口初始位置:', { x: centerX, y: centerY });
+  console.log('入场动画目标位置:', entranceTargetPosition);
 
   // 开发模式下打开开发者工具
   // mainWindow.webContents.openDevTools({ mode: 'detach' });
@@ -613,4 +624,53 @@ ipcMain.handle('save-chat-history', (event, history) => {
   config.chatHistory = history;
   saveConfig(config);
   return { success: true };
+});
+
+// 移动窗口到指定位置（用于入场动画）
+ipcMain.handle('move-window-to', async (event, position) => {
+  if (mainWindow) {
+    console.log('移动窗口到:', position);
+    mainWindow.setPosition(position.x, position.y);
+    return { success: true };
+  }
+  return { success: false };
+});
+
+// 获取入场动画目标位置
+ipcMain.handle('get-entrance-target-position', () => {
+  console.log('渲染进程请求入场动画目标位置:', entranceTargetPosition);
+  return entranceTargetPosition;
+});
+
+// 设置窗口为全屏（用于入场动画）
+ipcMain.handle('set-window-fullscreen', () => {
+  if (mainWindow) {
+    const { screen } = require('electron');
+    const { width, height } = screen.getPrimaryDisplay().workAreaSize;
+
+    console.log('设置窗口为全屏:', { width, height });
+
+    // 设置窗口大小为屏幕大小
+    mainWindow.setSize(width, height);
+    // 移动到屏幕左上角
+    mainWindow.setPosition(0, 0);
+
+    return { success: true, width, height };
+  }
+  return { success: false };
+});
+
+// 恢复窗口大小
+ipcMain.handle('restore-window-size', () => {
+  if (mainWindow && entranceTargetPosition) {
+    console.log('恢复窗口大小到 300x400，位置:', entranceTargetPosition);
+
+    // 恢复窗口大小
+    mainWindow.setSize(300, 400);
+    // 移动到目标位置（右下角）
+    mainWindow.setPosition(entranceTargetPosition.x, entranceTargetPosition.y);
+
+    return { success: true };
+  }
+  return { success: false };
 });

@@ -1,0 +1,28 @@
+{
+  "modelName": "Miara Pro",
+  "description": "米阿拉模型的动作配置",
+  "motionSequence": [
+    {
+      "motion": "Idle",
+      "duration": 5000,
+      "description": "走路动作，持续5秒"
+    },
+    {
+      "motion": "Flic",
+      "duration": 3000,
+      "description": "轻弹动作，持续3秒"
+    },
+    {
+      "motion": "Idle",
+      "duration": 5000,
+      "description": "再次走路，持续5秒"
+    },
+    {
+      "motion": "Tap",
+      "duration": 3000,
+      "description": "点击弹起动作，持续3秒"
+    }
+  ],
+  "loop": true,
+  "notes": "动作序列会循环播放。duration 单位为毫秒(ms)。"
+}
